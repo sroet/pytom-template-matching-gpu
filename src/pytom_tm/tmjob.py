@@ -96,6 +96,7 @@ def load_json_to_tmjob(
         # Use 'get' for backwards compatibility
         high_pass=data.get("high_pass", None),
         whiten_spectrum=data.get("whiten_spectrum", False),
+        tomogram_fanned_wedge=data.get("tomogram_fanned_wedge", False),
         rotational_symmetry=data.get("rotational_symmetry", 1),
         # if version number is not in the .json, it must be 0.3.0 or older
         pytom_tm_version_number=data.get("pytom_tm_version_number", "0.3.0"),
@@ -286,6 +287,7 @@ class TMJob:
         low_pass: float | None = None,
         high_pass: float | None = None,
         whiten_spectrum: bool = False,
+        tomogram_fanned_wedge: bool = False,
         rotational_symmetry: int = 1,
         pytom_tm_version_number: str = PYTOM_TM_VERSION,
         job_loaded_for_extraction: bool = False,
@@ -519,6 +521,7 @@ class TMJob:
         self.high_pass = high_pass
 
         self.whiten_spectrum = whiten_spectrum
+        self.tomogram_fanned_wedge = tomogram_fanned_wedge
         self.whitening_filter = self.output_dir.joinpath(
             f"{self.tomo_id}_whitening_filter.npy"
         )
@@ -917,9 +920,8 @@ class TMJob:
 
         # create wedge filters
         if (
-            self.ts_metadata.per_tilt_weighting
-            and self.ts_metadata.defocus_handedness != 0
-        ):
+            self.ts_metadata.per_tilt_weighting or self.tomogram_fanned_wedge
+        ) and self.ts_metadata.defocus_handedness != 0:
             # adjust ctf parameters for this specific patch in the tomogram
             full_tomo_center = np.array(self.tomo_shape) / 2
             patch_center = np.array(self.search_origin) + np.array(self.search_size) / 2
@@ -952,13 +954,16 @@ class TMJob:
 
         # for the tomogram a binary wedge is generated to explicitly set the missing
         # wedge region to 0
-        tomo_filter *= create_wedge(
+        tomo_wedge = create_wedge(
             fast_tomo.shape,
             self.ts_metadata,
             self.voxel_size,
             cut_off_radius=1.0,
-            per_tilt_weighting=False,
+            per_tilt_weighting=self.tomogram_fanned_wedge,
         ).astype(np.float32)
+        if self.tomogram_fanned_wedge:
+            tomo_wedge = (tomo_wedge != 0).astype(np.float32)
+        tomo_filter *= tomo_wedge
         # for the template a binary or per-tilt-weighted wedge is generated
         # depending on the options
         template_filter *= create_wedge(

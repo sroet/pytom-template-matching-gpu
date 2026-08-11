@@ -597,6 +597,13 @@ class TestTMJob(unittest.TestCase):
         self.assertIsInstance(
             job, TMJob, msg="TMJob could not be properly loaded from disk."
         )
+        self.assertFalse(job.tomogram_fanned_wedge)
+
+        job.tomogram_fanned_wedge = True
+        json_location = TEST_DATA_DIR.joinpath("job_tomogram_fanned_wedge.json")
+        job.write_to_json(json_location)
+        loaded_job = load_json_to_tmjob(json_location)
+        self.assertTrue(loaded_job.tomogram_fanned_wedge)
 
         # check job loading and preventing whitening filter recalculation
         with self.assertNoLogs(logger="pytom_tm", level="INFO"):

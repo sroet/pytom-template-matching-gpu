@@ -770,7 +770,7 @@ class TestTMJob(unittest.TestCase):
 
     def test_fanned_wedge_debug(self):
         if SKIP_PLOT:
-            self.skip("requires plotting")
+            self.skipTest("requires plotting")
         debug_path = TEMP_DIR / "debug"
         fanned_job = TMJob(
             "0",

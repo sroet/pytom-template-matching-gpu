@@ -786,7 +786,7 @@ class TestTMJob(unittest.TestCase):
             debug_fanned_wedge=debug_path,
         )
         # asking for the filtered tomogram should make the debug plot
-        filtered_tomogram = fanned_job.filtered_tomogram()
+        filtered_tomogram = fanned_job.filtered_tomogram
         self.assertIsNotNone(filtered_tomogram)
         debug_plots = list(debug_path.glob("*fanned_wedge_xz.png"))
         self.assertNotEqual(len(debug_plots), 0)

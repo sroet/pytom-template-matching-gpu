@@ -27,6 +27,13 @@ from pytom_tm.io import (
 from pytom_tm.mask import spherical_mask
 from pytom_tm.tmjob import TMJob, TMJobError, get_defocus_offsets, load_json_to_tmjob
 
+# Test if optional dependencies are installed
+SKIP_PLOT = False
+try:
+    from pytom_tm import plotting  # noqa: F401
+except RuntimeError:
+    SKIP_PLOT = True
+
 TOMO_SHAPE = (100, 107, 59)
 TEMPLATE_SIZE = 13
 LOCATION = (77, 26, 40)
@@ -760,6 +767,31 @@ class TestTMJob(unittest.TestCase):
             np.testing.assert_allclose(score, ref_score)
         with self.assertRaises(AssertionError):
             np.testing.assert_allclose(angle, ref_angle)
+
+    def test_fanned_wedge_debug(self):
+        if SKIP_PLOT:
+            self.skip("requires plotting")
+        debug_path = TEMP_DIR / "debug"
+        fanned_job = TMJob(
+            "0",
+            10,
+            TEST_TOMOGRAM,
+            TEST_TEMPLATE,
+            TEST_MASK,
+            TEST_DATA_DIR,
+            ts_metadata=TS_METADATA,
+            angle_increment=ANGULAR_SEARCH,
+            voxel_size=1.0,
+            tomogram_fanned_wedge=True,
+            debug_fanned_wedge=debug_path,
+        )
+        # asking for the filtered tomogram should make the debug plot
+        filtered_tomogram = fanned_job.filtered_tomogram()
+        self.assertIsNotNone(filtered_tomogram)
+        debug_plots = list(debug_path.glob("*fanned_wedge_xz.png"))
+        self.assertNotEqual(len(debug_plots), 0)
+        for plot in debug_plots:
+            self.assertGreater(plot.stat().st_size, 0)
 
     def test_load_json_to_tmjob(self):
         # check base job loading
